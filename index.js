@@ -12,6 +12,7 @@ const CRYPTO_CSV_PATH = process.env.CRYPTO_CSV_PATH
 // global vars
 let cartesiData = []
 
+// reload CTSI scraping data from the database CSV file
 async function readCartesiPoolCSV() {
 	const raw = await fsPromises.readFile(CRYPTO_CSV_PATH, 'utf8')
 	const lines = raw.split('\n')
@@ -90,7 +91,8 @@ client.on('messageCreate', async (msg) => {
 		if (targets.length <= 0) {
 			msg.reply("You didn't specify a target (you stupid).")
 		} else {
-			if (msg.mentions.has(msg.guild.members.cache.get('537305396348583948'))) {
+			if (msg.mentions.has(msg.guild.members.cache.get('537305396348583948')) || msg.mentions.has(msg.guild.members.cache.get('916028349233639434'))) {
+				// Can't raost me or the bot
 				msg.reply(':pinched_fingers:')
 				return
 			}
