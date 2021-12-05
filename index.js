@@ -103,6 +103,8 @@ client.on('messageCreate', async (msg) => {
 				msg.reply("Ah shit something's wrong...")
 			}
 		}
+	} else if (msg.content.includes('thank')) {	// you're welcome when anyone says thanks
+		msg.reply("You're welcome")
 	}
 })
 
