@@ -90,7 +90,7 @@ client.on('messageCreate', async (msg) => {
 		if (targets.length <= 0) {
 			msg.reply("You didn't specify a target (you stupid).")
 		} else {
-			if (msg.mentions.has(msg.guild.members.cache.get('537305396348583948'))) {
+			if (msg.mentions.has(msg.guild.members.cache.get('2394028409328'))) {
 				msg.reply(':pinched_fingers:')
 				return
 			}
