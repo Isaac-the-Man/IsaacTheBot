@@ -8,6 +8,14 @@ const axios = require('axios')
 
 // CONSTANTS (from ENV)
 const CRYPTO_CSV_PATH = process.env.CRYPTO_CSV_PATH
+const HELP_MSG = `
+ISAAC THE BOT
+commands:
+- !help: list of commands.
+- !roast @USER: roast the target with randomly generated insults.
+- !pool now: print out current balance.
+- !pool stats: print out profits in the past few days.
+`;
 
 // global vars
 let cartesiData = []
@@ -77,7 +85,9 @@ client.on('messageCreate', async (msg) => {
 		return false
 	}
 	// message hooks
-	if (msg.content === '!pool now') {	// current balance in pool
+	if (msg.content.trim() === '!help') {
+		msg.reply(HELP_MSG)
+	} else if (msg.content === '!pool now') {	// current balance in pool
 		await readCartesiPoolCSV()
 		const last = cartesiData.at(-1)
 		const now = moment(last.timestamp)
