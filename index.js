@@ -37,6 +37,8 @@ async function readCartesiPoolCSV() {
 
 // read cartesi's profit report
 function readCartesiProfitStats() {
+	// reversed
+	const reversed = [...cartesiData].reverse()
 	// last balance
 	const lastBalance = cartesiData.at(-1).balance
 	// filter 1,3,7 days
@@ -48,13 +50,14 @@ function readCartesiProfitStats() {
 	const tWeek = now.clone()
 	tWeek.subtract(1, 'weeks')
 	let profits = [0, 0, 0]	// 1,3,7 days
+	let switches = [t24, t72, tWeek]
 	let index = 0
-	cartesiData.reverse().forEach((e) => {
-		if (profits.length <= profits) {
+	reversed.forEach((e) => {
+		if (index >= profits.length) {
 			return
 		}
 		let time = moment(e.timestamp)
-		if (time.isBefore(t24) || time.isBefore(t72) || time.isBefore(tWeek)) {
+		if (time.isBefore(switches[index])) {
 			profits[index] = lastBalance - e.balance
 			index++
 		}
