@@ -87,7 +87,13 @@ client.on('messageCreate', async (msg) => {
 	if (msg.author.bot) {
 		return false
 	}
-	// message hooks
+	// personal hooks
+	if (msg.author.id === '311825597221306370') {
+		// say good to Josh
+		msg.reply('good.')
+		return
+	}
+	// command hooks
 	if (msg.content.trim() === '!help') {
 		msg.reply(HELP_MSG)
 	} else if (msg.content === '!pool now') {	// current balance in pool
