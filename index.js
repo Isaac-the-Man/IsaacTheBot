@@ -88,11 +88,6 @@ client.on('messageCreate', async (msg) => {
 		return false
 	}
 	// personal hooks
-	if (msg.channelId === '920819468463112192' && msg.author.id === '311825597221306370') {
-		// say good to Josh in food channel
-		msg.reply('good.')
-		return
-	}
 	// command hooks
 	if (msg.content.trim() === '!help') {
 		msg.reply(HELP_MSG)
