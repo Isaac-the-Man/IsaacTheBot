@@ -105,10 +105,10 @@ COMMANDS:
                 return
             else:
                 days.append(val)
-        if len(days) > 0:
-            await msg.reply(get_profit(list(sorted(days)), is_graph=is_graph), file=discord.File('profit.png') if is_graph else None)
-        elif len(days) > 5:
+        if len(days) > 5:
             await msg.reply('calm down')
+        elif len(days) > 0:
+            await msg.reply(get_profit(list(sorted(days)), is_graph=is_graph), file=discord.File('profit.png') if is_graph else None)
         else:
             await msg.reply(get_profit([1, 3, 7], is_graph=is_graph), file=discord.File('profit.png') if is_graph else None)
         return
