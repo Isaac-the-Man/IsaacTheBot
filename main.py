@@ -69,8 +69,10 @@ async def on_ready():
 @client.event
 async def on_message(msg):
 
-    # prevent bot
+    # prevent bot and replying to itself
     if msg.author == client.user:
+        return
+    if msg.author.bot:
         return
 
     # global hooks
