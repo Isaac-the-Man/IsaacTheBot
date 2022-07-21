@@ -4,11 +4,25 @@ from dotenv import load_dotenv
 import numpy as np
 from matplotlib import pyplot as plt
 import datetime
+from datetime import timedelta
+from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure
+import sys
+
 
 # load env var
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-CTSI_FILENAME = os.getenv('CTSI_DIR')
+
+# load all CTSI Addresses
+ctsi_addresses = []
+counter = 1
+while True:
+    if os.getenv(f'CTSI_ADDR_{counter}') is not None:
+        ctsi_addresses.append(os.getenv(f'CTSI_ADDR_{counter}'))
+        counter += 1
+    else:
+        break
 
 # utils
 def parse_int(string):
@@ -18,53 +32,77 @@ def parse_int(string):
         return -1
     else:
         return int(string)
-def get_profit(toi, is_graph=False):
-    timestamps = []
-    balances = []
-    # read data from file
-    with open(CTSI_FILENAME, 'r', encoding='utf-8') as f:
-        isFirst = True
-        for row in f:
-            # skip first row
-            if isFirst:
-                isFirst = False
-                continue
-            # read all rows
-            date, value = row.split(',')
-            bl = float(value)
-            dt = datetime.datetime.fromisoformat(date[:-1])
-            timestamps.append(dt)
-            balances.append(bl)
-    # compute profit in past week
-    now = datetime.datetime.now()
-    # toi = [1, 3, 7] # time of interest (day)
-    toi_idx = 0
-    profits = [] # [1, 3, 7]
-    cur_balance = balances[-1]
-    for time, bal in zip(reversed(timestamps), reversed(balances)):
-        if toi_idx >= len(toi):
-            break
-        td = now - time
-        if td.total_seconds() / 86400 >= toi[toi_idx]:
-            profits.append(cur_balance - bal)
-            toi_idx += 1
-    # graph output
-    if is_graph:
-        # graph the last 256 entries
-        plt.plot(timestamps[-256:], balances[-256:])
-        plt.title('CTSI Earnings')
-        plt.xlabel('CTSI')
-        plt.ylabel('Date')
-        plt.savefig('profit.png')
 
-    # output profit
+def get_profit(toi, db, addr):
+    '''
+    given a list of toi (time of interest), return total profit of the past N days
+    '''
+    # query from database
+    profits = []
+    now = datetime.datetime.now()
+    for days in toi:
+        # calculate stop time and query from db
+        end = now + timedelta(days=days)
+        query = db.poolsnapshots.find({
+            'pool_addr': addr,
+            'time': {'$lte': now, '$gt': end},
+        })
+        # sum profit
+        balances = [q['balance'] for q in query]
+        profits.append(max(balances) - min(balances))
+    # query last entry (current balance)
+    cur_balance = db.poolsnapshots.find({'pool_addr': addr}).limit(1).sort({'$natural':-1})
+    # output
     return f'As of {now} you have {cur_balance:.2f} CTSI.\n' + '\n'.join([f'For the past {toi[idx]} day(s), you\'ve earned {profit:.2f} CTSI.' for idx, profit in enumerate(profits)])
 
+def get_pools_profit(addrs, toi, db):
+    '''
+    query all profits from all the pools
+    '''
+    now = datetime.datetime.now()
+    output = ''
+    for addr in addrs:
+        output += f'Pool Address {addr}\n'
+        # for each pool, query toi data
+        boi = []    # balance of interest
+        for t in toi:
+            # query last record before specific toi date
+            query = db.poolsnapshots.find_one({
+                'pool_addr': addr,
+                'time' :{
+                    '$lt': now - timedelta(days=t),
+                }
+            }, sort=[('time', -1)])
+            # read balance from query
+            if query is not None:
+                boi.append(query.get('balance', 0))
+            else:
+                boi.append(0)
+        # stats calculation and output
+        cur_b = db.poolsnapshots.find_one({'pool_addr': addr}, sort=[('$natural', 1)]).get('balance', 0)   # get current balance (last record)
+        output += f'\t- As of {now} you have {cur_b} CTSI\n'
+        for t, b in zip(toi, boi):
+            output += f'\t- For the past {t} day(s), you\'ve earned {cur_b - b:.2f} CTSI\n'
+
+    return output
+
+# start mongoDB client
+print('Connecting to database...')
+client = MongoClient(port=27017)
+try:
+    client.cartesi_pool.command('ping')
+except ConnectionFailure:
+    print('Failed to connect to database, terminating...')
+    sys.exit(1)
+db = client.cartesi_pool
+
+# start discord client
+print('Connecting to discord...')
 client = discord.Client()
 
 @client.event
 async def on_ready():
-    print(f'{client.user} has connected to Discord!')
+    print(f'{client.user} has connected to discord!')
 
 @client.event
 async def on_message(msg):
@@ -98,9 +136,6 @@ COMMANDS:
         for arg in args:
             if arg == '':
                 continue
-            if arg == 'graph':
-                is_graph = True
-                continue
             val = parse_int(arg)
             if val <= 0:
                 await msg.reply('bad arguments')
@@ -110,9 +145,9 @@ COMMANDS:
         if len(days) > 5:
             await msg.reply('calm down')
         elif len(days) > 0:
-            await msg.reply(get_profit(list(sorted(days)), is_graph=is_graph), file=discord.File('profit.png') if is_graph else None)
+            await msg.reply(get_pools_profit(ctsi_addresses, sorted(days), db))
         else:
-            await msg.reply(get_profit([1, 3, 7], is_graph=is_graph), file=discord.File('profit.png') if is_graph else None)
+            await msg.reply(get_pools_profit(ctsi_addresses, [1, 3, 7], db))
         return
 
     if 'thank' in msg.content.lower():
