@@ -1,8 +1,6 @@
 import os
 import discord
 from dotenv import load_dotenv
-import numpy as np
-from matplotlib import pyplot as plt
 import datetime
 from datetime import timedelta
 from pymongo import MongoClient
