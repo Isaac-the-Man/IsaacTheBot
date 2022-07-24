@@ -33,28 +33,6 @@ def parse_int(string):
     else:
         return int(string)
 
-def get_profit(toi, db, addr):
-    '''
-    given a list of toi (time of interest), return total profit of the past N days
-    '''
-    # query from database
-    profits = []
-    now = datetime.datetime.now()
-    for days in toi:
-        # calculate stop time and query from db
-        end = now + timedelta(days=days)
-        query = db.poolsnapshots.find({
-            'pool_addr': addr,
-            'time': {'$lte': now, '$gt': end},
-        })
-        # sum profit
-        balances = [q['balance'] for q in query]
-        profits.append(max(balances) - min(balances))
-    # query last entry (current balance)
-    cur_balance = db.poolsnapshots.find({'pool_addr': addr}).limit(1).sort({'$natural':-1})
-    # output
-    return f'As of {now} you have {cur_balance:.2f} CTSI.\n' + '\n'.join([f'For the past {toi[idx]} day(s), you\'ve earned {profit:.2f} CTSI.' for idx, profit in enumerate(profits)])
-
 def get_pools_profit(addrs, toi, db):
     '''
     query all profits from all the pools
@@ -79,7 +57,7 @@ def get_pools_profit(addrs, toi, db):
             else:
                 boi.append(0)
         # stats calculation and output
-        cur_b = db.poolsnapshots.find_one({'pool_addr': addr}, sort=[('$natural', 1)]).get('balance', 0)   # get current balance (last record)
+        cur_b = db.poolsnapshots.find({'pool_addr': addr}).sort([('time',-1)]).limit(1).get('balance', 0)# get current balance (last record)
         output += f'\t- As of {now} you have {cur_b} CTSI\n'
         for t, b in zip(toi, boi):
             output += f'\t- For the past {t} day(s), you\'ve earned {cur_b - b:.2f} CTSI\n'
@@ -120,7 +98,7 @@ async def on_message(msg):
 =====IsaacTheBot=====
 
 COMMANDS:
-    - !pool [GRAPH] [TIME_OF_INETEREST*]: display profit in the past few days.
+    - !pool [TIME_OF_INETEREST*]: display profit in the past few days.
         - GRAPH: generates a graph of the past 256 entries.
         - TIME_OF_INTEREST: custom days to calculate profit, defaults to [1, 3, 7]. Can specify up to 5 dates.
 
