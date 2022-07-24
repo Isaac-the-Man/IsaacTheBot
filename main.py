@@ -55,7 +55,7 @@ def get_pools_profit(addrs, toi, db):
             else:
                 boi.append(0)
         # stats calculation and output
-        cur_b = db.poolsnapshots.find({'pool_addr': addr}).sort([('time',-1)]).limit(1).get('balance', 0)# get current balance (last record)
+        cur_b = db.poolsnapshots.find({'pool_addr': addr}).sort([('time',-1)]).limit(1)[0].get('balance', 0)# get current balance (last record)
         output += f'\t- As of {now} you have {cur_b} CTSI\n'
         for t, b in zip(toi, boi):
             output += f'\t- For the past {t} day(s), you\'ve earned {cur_b - b:.2f} CTSI\n'
